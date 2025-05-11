@@ -1,105 +1,293 @@
-# 食譜生成器 API
+# AI 食譜生成器 API
 
-這是一個使用 Go 和 Gemini AI 開發的智慧食譜生成器 API 服務。只要提供您家中現有的廚具和食材，API 就能為您生成合適的食譜建議。
-## 測試
-我有提供一個`swiftExsemple.wsift`前端測試範例可以參考
-## 系統功能
+這是一個基於 AI 的食譜生成器 API，提供食物圖片辨識、食材設備辨識、食譜生成等功能。
 
-1. **智慧配對**
-   - 根據現有廚具類型生成適合的烹飪方式
-   - 依據食材組合推薦最佳烹飪方案
+## 功能特點
 
-2. **彈性輸入**
-   - 支援多種廚具組合
-   - 可接受不同份量的食材清單
-   - 可設定個人烹飪偏好
+- 食物圖片辨識：分析食物圖片，提供食物名稱、描述、可能使用的食材和設備
+- 食材設備辨識：分析圖片中的食材和設備，提供詳細的清單和摘要
+- 食譜生成：根據食物名稱生成詳細的食譜
+- 食譜建議：根據可用的食材和設備，提供多個適合的食譜建議
 
-3. **標準化輸出**
-   - 清晰的步驟說明
-   - 精確的烹飪時間
-   - 詳細的火候控制
-   - 完整的成品說明
+## API 端點
 
-## 使用 Docker 快速部署
+### 1. 食物圖片辨識
 
-### 1. 環境準備
-```bash
-# 複製環境設定檔
-cp .env.example .env
+分析食物圖片，提供詳細的食物資訊。
 
-# 編輯 .env 檔案，設定您的 Gemini API 金鑰
-# GEMINI_API_KEY=您的API金鑰
-```
+**端點：** `POST /api/recognize-food`
 
-### 2. 建立與運行
-```bash
-# 建立 Docker 映像檔
-docker build -t recipe-generator .
-
-# 運行容器（前台模式）
-docker run -p 8080:8080 recipe-generator
-
-# 或使用背景模式運行
-docker run -d -p 8080:8080 recipe-generator
-```
-
-### 3. API 使用範例
-
-發送 POST 請求到 `http://localhost:8080/generate-recipe`：
-
+**請求格式：**
 ```json
 {
-    "equipment": [
-        {
-            "name": "平底鍋",
-            "type": "鍋具",
-            "size": "中型",
-            "material": "不鏽鋼"
-        }
-    ],
-    "ingredients": [
-        {
-            "name": "油",
-            "type": "食材",
-            "amount": "2湯匙",
-            "unit": "湯匙"
-        }
-    ],
-    "preference": {
-        "cooking_method": "煎",
-        "doneness": "中等熟"
-    }
+    "image": "data:image/jpeg;base64,...",
+    "description_hint": "可選的描述提示"
 }
 ```
 
-您將收到包含完整食譜的 JSON 回應：
+**回應格式：**
 ```json
 {
-    "dish_name": "菜名",
-    "dish_description": "菜餚描述",
-    "recipe": [
+    "recognized_foods": [
         {
-            "step": "步驟說明",
-            "time": "所需時間",
-            "temperature": "溫度",
-            "description": "描述",
-            "doneness": "熟度"
+            "name": "食物名稱",
+            "description": "詳細的食物描述",
+            "possible_ingredients": [
+                {
+                    "name": "食材名稱",
+                    "type": "食材分類"
+                }
+            ],
+            "possible_equipment": [
+                {
+                    "name": "設備名稱",
+                    "type": "設備分類"
+                }
+            ]
         }
     ]
 }
 ```
 
-### 4. 常見問題排解
+### 2. 食材設備辨識
 
-1. 如果無法連接 API：
-   - 確認容器是否正常運行：`docker ps`
-   - 檢查日誌：`docker logs <container_id>`
+分析圖片中的食材和設備，提供詳細的清單。
 
-2. 如果需要停止服務：
-   - 查看容器 ID：`docker ps`
-   - 停止容器：`docker stop <container_id>`
+**端點：** `POST /api/recognize-ingredients`
 
-3. 如果需要更新服務：
-   - 停止舊容器
-   - 重新建立映像檔
-   - 啟動新容器
+**請求格式：**
+```json
+{
+    "image": "data:image/jpeg;base64,...",
+    "description_hint": "可選的描述提示"
+}
+```
+
+**回應格式：**
+```json
+{
+    "ingredients": [
+        {
+            "name": "食材名稱",
+            "type": "食材分類",
+            "amount": "數量",
+            "unit": "單位",
+            "preparation": "處理方式"
+        }
+    ],
+    "equipment": [
+        {
+            "name": "設備名稱",
+            "type": "設備分類",
+            "size": "大小",
+            "material": "材質",
+            "power_source": "能源類型"
+        }
+    ],
+    "summary": "整體摘要說明"
+}
+```
+
+### 3. 食譜生成
+
+根據食物名稱生成詳細的食譜。
+
+**端點：** `POST /api/generate-recipe`
+
+**請求格式：**
+```json
+{
+    "dish_name": "菜名",
+    "preferred_ingredients": ["食材1", "食材2"],
+    "excluded_ingredients": ["食材3", "食材4"],
+    "preferred_equipment": ["設備1", "設備2"],
+    "preference": {
+        "cooking_method": "烹調方式",
+        "doneness": "熟度",
+        "serving_size": "份量"
+    }
+}
+```
+
+**回應格式：**
+```json
+{
+    "dish_name": "菜名",
+    "dish_description": "菜餚描述",
+    "ingredients": [
+        {
+            "name": "食材名稱",
+            "type": "食材分類",
+            "amount": "數量",
+            "unit": "單位",
+            "preparation": "處理方式"
+        }
+    ],
+    "equipment": [
+        {
+            "name": "設備名稱",
+            "type": "設備分類",
+            "size": "大小",
+            "material": "材質",
+            "power_source": "能源類型"
+        }
+    ],
+    "recipe": [
+        {
+            "step_number": 1,
+            "title": "步驟標題",
+            "description": "步驟說明",
+            "actions": [
+                {
+                    "action": "動作名稱",
+                    "tool_required": "使用工具",
+                    "material_required": ["使用材料"],
+                    "time_minutes": 整數分鐘,
+                    "instruction_detail": "詳細操作方法"
+                }
+            ],
+            "estimated_total_time": "預估時間",
+            "temperature": "溫度或火力",
+            "warnings": ["注意事項"],
+            "notes": "補充備註"
+        }
+    ]
+}
+```
+
+### 4. 食譜建議
+
+根據可用的食材和設備，提供多個適合的食譜建議。
+
+**端點：** `POST /api/suggest-recipes`
+
+**請求格式：**
+```json
+{
+    "available_ingredients": [
+        {
+            "name": "食材名稱",
+            "type": "食材分類",
+            "amount": "數量",
+            "unit": "單位",
+            "preparation": "處理方式"
+        }
+    ],
+    "available_equipment": [
+        {
+            "name": "設備名稱",
+            "type": "設備分類",
+            "size": "大小",
+            "material": "材質",
+            "power_source": "能源類型"
+        }
+    ],
+    "preference": {
+        "cooking_method": "烹調方式",
+        "dietary_restrictions": ["限制1", "限制2"],
+        "serving_size": "份量"
+    }
+}
+```
+
+**回應格式：**
+```json
+{
+    "suggested_recipes": [
+        {
+            "dish_name": "菜名",
+            "dish_description": "菜餚描述",
+            "ingredients": [
+                {
+                    "name": "食材名稱",
+                    "type": "食材分類",
+                    "amount": "數量",
+                    "unit": "單位",
+                    "preparation": "處理方式"
+                }
+            ],
+            "equipment": [
+                {
+                    "name": "設備名稱",
+                    "type": "設備分類",
+                    "size": "大小",
+                    "material": "材質",
+                    "power_source": "能源類型"
+                }
+            ],
+            "recipe": [
+                {
+                    "step_number": 1,
+                    "title": "步驟標題",
+                    "description": "步驟說明",
+                    "actions": [
+                        {
+                            "action": "動作名稱",
+                            "tool_required": "使用工具",
+                            "material_required": ["使用材料"],
+                            "time_minutes": 整數分鐘,
+                            "instruction_detail": "詳細操作方法"
+                        }
+                    ],
+                    "estimated_total_time": "預估時間",
+                    "temperature": "溫度或火力",
+                    "warnings": ["注意事項"],
+                    "notes": "補充備註"
+                }
+            ]
+        }
+    ]
+}
+```
+
+## 注意事項
+
+1. 圖片大小限制為 5MB
+2. 支援的圖片格式：jpg、jpeg、png
+3. 所有 API 回應都使用繁體中文
+4. 建議使用高品質、清晰的圖片以獲得更好的辨識結果
+5. 圖片內容應該清晰可見，避免模糊或過暗
+
+## 錯誤處理
+
+API 可能返回以下錯誤：
+
+- 400 Bad Request：請求格式無效
+  - 無效的圖片格式
+  - 圖片大小超過限制
+  - 不支援的檔案類型
+- 500 Internal Server Error：伺服器內部錯誤
+  - 食物辨識失敗
+  - 食材設備辨識失敗
+  - 食譜生成失敗
+  - 食譜建議生成失敗
+
+## 開發環境設定
+
+1. 複製專案
+```bash
+git clone [repository-url]
+cd recipe-generator
+```
+
+2. 設定環境變數
+```bash
+cp .env.example .env
+# 編輯 .env 檔案，填入必要的設定
+```
+
+3. 使用 Docker 建置和運行
+```bash
+docker-compose up --build
+```
+
+## 技術堆疊
+
+- Go
+- Gin Web Framework
+- OpenRouter AI API
+- Docker
+
+## 授權
+
+MIT License
