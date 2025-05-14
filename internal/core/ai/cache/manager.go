@@ -56,10 +56,10 @@ func NewManager(cfg *config.Config) *CacheManager {
 	// 啟動清理過期緩存的協程
 	go m.startCleanup()
 
-	common.LogInfo("Cache manager initialized",
-		zap.Int("max_size", cfg.Cache.MaxSize),
-		zap.Duration("ttl", cfg.Cache.TTL),
-		zap.Duration("cleanup_interval", cfg.Cache.CleanupInterval),
+	common.LogInfo("快取管理員已初始化",
+		zap.Int("最大容量", cfg.Cache.MaxSize),
+		zap.Duration("存活時間", cfg.Cache.TTL),
+		zap.Duration("清理間隔", cfg.Cache.CleanupInterval),
 	)
 
 	return m
@@ -88,10 +88,8 @@ func (m *CacheManager) Get(ctx context.Context, prompt, imageData string) (strin
 			m.stats.evictions++
 			m.mu.Unlock()
 			m.mu.RLock()
-			common.LogInfo("Cache entry expired",
-				zap.String("key", key),
-				zap.Time("expired_at", entry.expiresAt),
-				zap.Duration("age", time.Since(entry.createdAt)),
+			common.LogInfo("快取已過期",
+				zap.String("鍵", key),
 			)
 			return "", common.ErrCacheDisabled
 		}
@@ -99,10 +97,8 @@ func (m *CacheManager) Get(ctx context.Context, prompt, imageData string) (strin
 		// 檢查圖片哈希是否匹配
 		if imageData != "" && entry.imageHash != m.hashImage(imageData) {
 			m.stats.misses++
-			common.LogInfo("Cache miss due to image change",
-				zap.String("key", key),
-				zap.String("old_hash", entry.imageHash),
-				zap.String("new_hash", m.hashImage(imageData)),
+			common.LogInfo("快取因圖片變更未命中",
+				zap.String("鍵", key),
 			)
 			return "", fmt.Errorf("image changed")
 		}
@@ -113,20 +109,15 @@ func (m *CacheManager) Get(ctx context.Context, prompt, imageData string) (strin
 		m.store[key] = entry
 		m.stats.hits++
 
-		common.LogInfo("Cache hit",
-			zap.String("key", key),
-			zap.Time("expires_at", entry.expiresAt),
-			zap.Int("access_count", entry.accessCount),
-			zap.Duration("age", time.Since(entry.createdAt)),
-			zap.Float64("hit_ratio", float64(m.stats.hits)/float64(m.stats.hits+m.stats.misses)),
+		common.LogInfo("快取命中",
+			zap.String("鍵", key),
 		)
 		return entry.value, nil
 	}
 
 	m.stats.misses++
-	common.LogInfo("Cache miss",
-		zap.String("key", key),
-		zap.Float64("hit_ratio", float64(m.stats.hits)/float64(m.stats.hits+m.stats.misses)),
+	common.LogInfo("快取未命中",
+		zap.String("鍵", key),
 	)
 	return "", common.ErrCacheDisabled
 }
@@ -145,10 +136,8 @@ func (m *CacheManager) Set(ctx context.Context, prompt, imageData, value string)
 	if len(m.store) >= m.config.Cache.MaxSize {
 		// 清理過期項目
 		evicted := m.cleanup()
-		common.LogInfo("Cache cleanup performed",
-			zap.Int("evicted_count", evicted),
-			zap.Int("current_size", len(m.store)),
-			zap.Int("max_size", m.config.Cache.MaxSize),
+		common.LogInfo("快取清理執行",
+			zap.Int("清理數量", evicted),
 		)
 
 		// 如果仍然超過大小限制，執行 LRU 清理
@@ -159,9 +148,8 @@ func (m *CacheManager) Set(ctx context.Context, prompt, imageData, value string)
 		// 如果仍然超過大小限制，返回錯誤
 		if len(m.store) >= m.config.Cache.MaxSize {
 			m.stats.errors++
-			common.LogWarn("Cache full after cleanup",
-				zap.Int("current_size", len(m.store)),
-				zap.Int("max_size", m.config.Cache.MaxSize),
+			common.LogWarn("快取已滿",
+				zap.Int("目前容量", len(m.store)),
 			)
 			return common.ErrCacheFull
 		}
@@ -181,11 +169,8 @@ func (m *CacheManager) Set(ctx context.Context, prompt, imageData, value string)
 		accessCount: 0,
 	}
 
-	common.LogInfo("Cache entry set",
-		zap.String("key", key),
-		zap.Time("expires_at", now.Add(m.config.Cache.TTL)),
-		zap.Int("current_size", len(m.store)),
-		zap.Int("max_size", m.config.Cache.MaxSize),
+	common.LogInfo("快取已儲存",
+		zap.String("鍵", key),
 	)
 
 	return nil
@@ -265,10 +250,8 @@ func (m *CacheManager) evictLRU() {
 	if oldestKey != "" {
 		delete(m.store, oldestKey)
 		m.stats.evictions++
-		common.LogInfo("Evicted LRU cache entry",
-			zap.String("key", oldestKey),
-			zap.Time("last_access", oldestAccess),
-			zap.Int("access_count", lowestAccessCount),
+		common.LogInfo("快取已淘汰(LRU)",
+			zap.String("鍵", oldestKey),
 		)
 	}
 }
@@ -296,10 +279,10 @@ func (m *CacheManager) Close() error {
 
 	// 清空緩存
 	m.store = make(map[string]cacheEntry)
-	common.LogInfo("Cache manager closed",
-		zap.Int64("total_hits", m.stats.hits),
-		zap.Int64("total_misses", m.stats.misses),
-		zap.Int64("total_evictions", m.stats.evictions),
+	common.LogInfo("快取管理員已關閉",
+		zap.Int64("命中次數", m.stats.hits),
+		zap.Int64("未命中次數", m.stats.misses),
+		zap.Int64("淘汰次數", m.stats.evictions),
 	)
 	return nil
 }

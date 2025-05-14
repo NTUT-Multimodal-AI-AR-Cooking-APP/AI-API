@@ -7,9 +7,6 @@ import (
 // RecipeByIngredientsRequest 根據食材生成食譜的請求
 type RecipeByIngredientsRequest = common.RecipeByIngredientsRequest
 
-// RecipeByIngredientsResponse 根據食材生成食譜的回應
-type RecipeByIngredientsResponse = common.RecipeByIngredientsResponse
-
 // SuggestedRecipe 推薦的食譜
 type SuggestedRecipe = common.Recipe
 

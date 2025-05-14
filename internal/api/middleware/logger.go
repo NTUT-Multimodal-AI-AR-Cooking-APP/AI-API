@@ -49,19 +49,19 @@ func Logger() gin.HandlerFunc {
 		// 根據狀態碼記錄不同級別的日誌
 		switch {
 		case status >= 500:
-			common.LogError("Server error",
+			common.LogError("伺服器錯誤",
 				append(fields, zap.String("error_type", "server_error"))...,
 			)
 		case status >= 400:
-			common.LogWarn("Client error",
+			common.LogWarn("用戶端錯誤",
 				append(fields, zap.String("error_type", "client_error"))...,
 			)
 		case status >= 300:
-			common.LogInfo("Redirect",
+			common.LogInfo("重新導向",
 				append(fields, zap.String("error_type", "redirect"))...,
 			)
 		default:
-			common.LogInfo("Request completed",
+			common.LogInfo("請求完成",
 				fields...,
 			)
 		}

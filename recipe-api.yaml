@@ -77,7 +77,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecipeByIngredientsResponse'
+                $ref: '#/components/schemas/RecipeByNameResponse'
 
 components:
   schemas:
@@ -303,11 +303,3 @@ components:
             serving_size:
               type: string
       required: [available_ingredients, available_equipment, preference]
-
-    RecipeByIngredientsResponse:
-      type: object
-      properties:
-        suggested_recipes:
-          type: array
-          items:
-            $ref: '#/components/schemas/RecipeByNameResponse'

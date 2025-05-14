@@ -7,9 +7,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
-
-	"recipe-generator/internal/pkg/common"
 )
 
 // Config 應用配置
@@ -23,6 +20,7 @@ type Config struct {
 	RateLimit   RateLimitConfig  `mapstructure:"rate_limit"`
 	Image       ImageConfig      `mapstructure:"image"`
 	DedupWindow time.Duration    `mapstructure:"dedup_window"`
+	LogLevel    string           `mapstructure:"log_level"`
 }
 
 // AppConfig 應用程式設定
@@ -108,6 +106,7 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("rate_limit.requests", "RATE_LIMIT_REQUESTS")
 	viper.BindEnv("rate_limit.window", "RATE_LIMIT_WINDOW")
 	viper.BindEnv("dedup_window", "DEDUP_WINDOW")
+	viper.BindEnv("log_level", "LOG_LEVEL")
 
 	// 設定設定檔名稱和路徑
 	viper.SetConfigName(".env")
@@ -121,11 +120,8 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
-	// 添加調試日誌
-	common.LogInfo("Loading configuration",
-		zap.String("openrouter_api_key", maskAPIKey(viper.GetString("openrouter.api_key"))),
-		zap.String("openrouter_model", viper.GetString("openrouter.model")),
-	)
+	// 添加調試日誌（logger 尚未初始化，改用 fmt.Println）
+	fmt.Println("Loading configuration", "openrouter_api_key:", maskAPIKey(viper.GetString("openrouter.api_key")), "openrouter_model:", viper.GetString("openrouter.model"))
 
 	// 解析設定
 	var config Config
@@ -154,7 +150,7 @@ func setDefaults() {
 	// 應用程式設定
 	viper.SetDefault("app.env", "development")
 	viper.SetDefault("app.debug", true)
-	viper.SetDefault("app.log_level", "debug")
+	viper.SetDefault("app.log_level", "info")
 	viper.SetDefault("app.version", "1.0.0")
 	viper.SetDefault("app.name", "recipe-generator")
 

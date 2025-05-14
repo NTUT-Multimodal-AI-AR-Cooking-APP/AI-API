@@ -62,29 +62,6 @@ type RecipeByIngredientsRequest struct {
 	} `json:"preference" binding:"required"`
 }
 
-// RecipeByIngredientsResponse 推薦食譜清單
-type RecipeByIngredientsResponse struct {
-	SuggestedRecipes []RecipeByNameResponse `json:"suggested_recipes"`
-}
-
-// Ingredient 食材結構
-type Ingredient struct {
-	Name        string `json:"name"`
-	Type        string `json:"type,omitempty"`
-	Amount      string `json:"amount,omitempty"`
-	Unit        string `json:"unit,omitempty"`
-	Preparation string `json:"preparation,omitempty"`
-}
-
-// Equipment 設備結構
-type Equipment struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Size        string `json:"size,omitempty"`
-	Material    string `json:"material,omitempty"`
-	PowerSource string `json:"power_source,omitempty"`
-}
-
 // Handler 食譜處理程序
 type Handler struct {
 	recipeService     *recipeService.RecipeService
@@ -228,10 +205,7 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 		c.Header("X-Request-ID", requestID)
 	}
 
-	common.LogInfo("開始處理食譜推薦請求",
-		zap.String("request_id", requestID),
-		zap.String("client_ip", c.ClientIP()),
-	)
+	common.LogInfo("開始處理食譜推薦請求", zap.String("request_id", requestID), zap.String("client_ip", c.ClientIP()))
 
 	var req RecipeByIngredientsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -242,11 +216,7 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
-
-	common.LogInfo("用戶輸入 (原始 req)",
-		zap.String("request_id", requestID),
-		zap.Any("req", req),
-	)
+	common.LogDebug("用戶輸入 (原始 req)", zap.String("request_id", requestID), zap.Any("req", req))
 
 	serviceReq := &common.RecipeByIngredientsRequest{
 		AvailableIngredients: make([]common.Ingredient, len(req.AvailableIngredients)),
@@ -257,7 +227,6 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 			ServingSize:         req.Preference.ServingSize,
 		},
 	}
-
 	for i, ing := range req.AvailableIngredients {
 		serviceReq.AvailableIngredients[i] = common.Ingredient{
 			Name:        ing.Name,
@@ -267,7 +236,6 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 			Preparation: ing.Preparation,
 		}
 	}
-
 	for i, equip := range req.AvailableEquipment {
 		serviceReq.AvailableEquipment[i] = common.Equipment{
 			Name:        equip.Name,
@@ -277,11 +245,7 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 			PowerSource: equip.PowerSource,
 		}
 	}
-
-	common.LogInfo("轉換後的 serviceReq",
-		zap.String("request_id", requestID),
-		zap.Any("serviceReq", serviceReq),
-	)
+	common.LogDebug("轉換後的 serviceReq", zap.String("request_id", requestID), zap.Any("serviceReq", serviceReq))
 
 	result, err := h.suggestionService.SuggestRecipes(c.Request.Context(), serviceReq)
 	if err != nil {
@@ -293,82 +257,94 @@ func (h *Handler) HandleRecipeByIngredients(c *gin.Context) {
 		return
 	}
 
-	response := RecipeByIngredientsResponse{
-		SuggestedRecipes: make([]RecipeByNameResponse, len(result.SuggestedRecipes)),
+	response := RecipeByNameResponse{
+		DishName:        result.DishName,
+		DishDescription: result.DishDescription,
+		Ingredients:     make([]Ingredient, len(result.Ingredients)),
+		Equipment:       make([]Equipment, len(result.Equipment)),
+		Recipe:          make([]RecipeStep, len(result.Recipe)),
 	}
 
-	for i, recipe := range result.SuggestedRecipes {
-		response.SuggestedRecipes[i] = RecipeByNameResponse{
-			DishName:        recipe.DishName,
-			DishDescription: recipe.DishDescription,
-			Ingredients:     make([]Ingredient, len(recipe.Ingredients)),
-			Equipment:       make([]Equipment, len(recipe.Equipment)),
-			Recipe:          make([]RecipeStep, len(recipe.Recipe)),
+	for j, ing := range result.Ingredients {
+		response.Ingredients[j] = Ingredient{
+			Name:        ing.Name,
+			Type:        ing.Type,
+			Amount:      ing.Amount,
+			Unit:        ing.Unit,
+			Preparation: ing.Preparation,
 		}
+	}
 
-		for j, ing := range recipe.Ingredients {
-			response.SuggestedRecipes[i].Ingredients[j] = Ingredient{
-				Name:        ing.Name,
-				Type:        ing.Type,
-				Amount:      ing.Amount,
-				Unit:        ing.Unit,
-				Preparation: ing.Preparation,
+	for j, equip := range result.Equipment {
+		response.Equipment[j] = Equipment{
+			Name:        equip.Name,
+			Type:        equip.Type,
+			Size:        equip.Size,
+			Material:    equip.Material,
+			PowerSource: equip.PowerSource,
+		}
+	}
+
+	for j, step := range result.Recipe {
+		// 轉換 actions
+		actions := make([]RecipeAction, len(step.Actions))
+		for k, act := range step.Actions {
+			actions[k] = RecipeAction{
+				Action:            act.Action,
+				ToolRequired:      act.ToolRequired,
+				MaterialRequired:  act.MaterialRequired,
+				TimeMinutes:       act.TimeMinutes,
+				InstructionDetail: act.InstructionDetail,
 			}
 		}
-
-		for j, equip := range recipe.Equipment {
-			response.SuggestedRecipes[i].Equipment[j] = Equipment{
-				Name:        equip.Name,
-				Type:        equip.Type,
-				Size:        equip.Size,
-				Material:    equip.Material,
-				PowerSource: equip.PowerSource,
-			}
-		}
-
-		for j, step := range recipe.Recipe {
-			// 轉換 actions
-			actions := make([]RecipeAction, len(step.Actions))
-			for k, act := range step.Actions {
-				actions[k] = RecipeAction{
-					Action:            act.Action,
-					ToolRequired:      act.ToolRequired,
-					MaterialRequired:  act.MaterialRequired,
-					TimeMinutes:       act.TimeMinutes,
-					InstructionDetail: act.InstructionDetail,
-				}
-			}
-			// 轉換 warnings
-			var warnings string
-			switch w := any(step.Warnings).(type) {
-			case string:
-				warnings = w
-			case *string:
-				if w != nil {
-					warnings = *w
-				} else {
-					warnings = ""
-				}
-			default:
+		// 轉換 warnings
+		var warnings string
+		switch w := any(step.Warnings).(type) {
+		case string:
+			warnings = w
+		case *string:
+			if w != nil {
+				warnings = *w
+			} else {
 				warnings = ""
 			}
-			response.SuggestedRecipes[i].Recipe[j] = RecipeStep{
-				StepNumber:         step.StepNumber,
-				Title:              step.Title,
-				Description:        step.Description,
-				Actions:            actions,
-				EstimatedTotalTime: step.EstimatedTotalTime,
-				Temperature:        step.Temperature,
-				Warnings:           warnings,
-				Notes:              step.Notes,
-			}
+		default:
+			warnings = ""
+		}
+		response.Recipe[j] = RecipeStep{
+			StepNumber:         step.StepNumber,
+			Title:              step.Title,
+			Description:        step.Description,
+			Actions:            actions,
+			EstimatedTotalTime: step.EstimatedTotalTime,
+			Temperature:        step.Temperature,
+			Warnings:           warnings,
+			Notes:              step.Notes,
 		}
 	}
 
 	common.LogInfo("食譜推薦成功",
 		zap.String("request_id", requestID),
-		zap.Int("recipes_count", len(result.SuggestedRecipes)),
+		zap.String("dish_name", result.DishName),
 	)
 
 	c.JSON(http.StatusOK, response)
+}
+
+// Ingredient 食材結構
+type Ingredient struct {
+	Name        string `json:"name"`
+	Type        string `json:"type,omitempty"`
+	Amount      string `json:"amount,omitempty"`
+	Unit        string `json:"unit,omitempty"`
+	Preparation string `json:"preparation,omitempty"`
+}
+
+// Equipment 設備結構
+type Equipment struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Size        string `json:"size,omitempty"`
+	Material    string `json:"material,omitempty"`
+	PowerSource string `json:"power_source,omitempty"`
 }

@@ -68,11 +68,22 @@ func customLevelEncoder(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
 }
 
 // InitLogger 初始化日誌系統
-func InitLogger(debug bool) error {
+func InitLogger(logLevel string) error {
 	// 設置日誌級別
-	level := zapcore.InfoLevel
-	if debug {
+	var level zapcore.Level
+	switch strings.ToLower(logLevel) {
+	case "debug":
 		level = zapcore.DebugLevel
+	case "info":
+		level = zapcore.InfoLevel
+	case "warn":
+		level = zapcore.WarnLevel
+	case "error":
+		level = zapcore.ErrorLevel
+	case "fatal":
+		level = zapcore.FatalLevel
+	default:
+		level = zapcore.InfoLevel
 	}
 
 	// 創建日誌目錄
@@ -117,24 +128,6 @@ func InitLogger(debug bool) error {
 	zap.ReplaceGlobals(Logger)
 
 	return nil
-}
-
-// LogRequest 記錄 HTTP 請求
-func LogRequest(method, path string, status int, duration time.Duration, requestID string) {
-	if status >= 400 {
-		Logger.Error("Request failed",
-			zap.String("method", method),
-			zap.String("path", path),
-			zap.Int("status", status),
-			zap.Duration("duration", duration),
-		)
-		return
-	}
-	Logger.Info("Request OK",
-		zap.String("method", method),
-		zap.String("path", path),
-		zap.Duration("duration", duration),
-	)
 }
 
 // LogInfo 記錄信息日誌
@@ -201,27 +194,27 @@ func Sync() {
 	}
 }
 
-// LogCacheHit 記錄緩存命中
+// LogCacheHit 記錄快取命中
 func LogCacheHit(cacheType, key string) {
-	LogInfo("Cache Hit", zap.String("type", cacheType))
+	LogInfo("快取命中", zap.String("類型", cacheType))
 }
 
-// LogCacheMiss 記錄緩存未命中
+// LogCacheMiss 記錄快取未命中
 func LogCacheMiss(cacheType, key string) {
-	LogInfo("Cache Miss", zap.String("type", cacheType))
+	LogInfo("快取未命中", zap.String("類型", cacheType))
 }
 
 // LogAICall 記錄 AI 調用
 func LogAICall(prompt string, duration time.Duration, err error, requestID string) {
 	if err != nil {
-		LogError("AI Call Failed",
+		LogError("AI 請求失敗",
 			zap.Error(err),
-			zap.Duration("duration", duration),
+			zap.Duration("耗時", duration),
 		)
 		return
 	}
-	LogInfo("AI Call OK",
-		zap.Duration("duration", duration),
+	LogInfo("AI 請求成功",
+		zap.Duration("耗時", duration),
 	)
 }
 
@@ -242,12 +235,12 @@ func LogImageProcessing(level string, msg string, fields ...zap.Field) {
 	// 根據日誌級別記錄
 	switch level {
 	case "info":
-		LogInfo(msg, filteredFields...)
+		LogInfo("圖片處理資訊", filteredFields...)
 	case "error":
-		LogError(msg, filteredFields...)
+		LogError("圖片處理失敗", filteredFields...)
 	case "warn":
-		LogWarn(msg, filteredFields...)
+		LogWarn("圖片處理警告", filteredFields...)
 	default:
-		LogInfo(msg, filteredFields...)
+		LogInfo("圖片處理資訊", filteredFields...)
 	}
 }

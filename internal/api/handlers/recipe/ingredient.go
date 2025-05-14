@@ -45,10 +45,13 @@ func HandleIngredientRecognition(ingredientService *recipe.IngredientService, im
 			return
 		}
 
-		// 驗證圖片格式
-		if req.Image == "" {
-			common.LogError("Invalid image format",
-				zap.String("request_id", requestID))
+		// 驗證圖片格式（加強）
+		if req.Image == "" || !strings.HasPrefix(req.Image, "data:image/") {
+			common.LogError("Invalid image format (handler)",
+				zap.String("request_id", requestID),
+				zap.String("image_type", getImageType(req.Image)),
+				zap.Int("image_length", len(req.Image)),
+			)
 			common.WriteErrorResponse(w, http.StatusBadRequest, "Invalid image format")
 			return
 		}

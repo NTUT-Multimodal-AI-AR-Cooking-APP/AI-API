@@ -43,7 +43,7 @@ func (s *IngredientService) IdentifyIngredient(ctx context.Context, imageData st
 	}
 
 	// 構建提示
-	prompt := `請仔細分析圖片中的食材和設備，並提供詳細的識別結果(並且用繁體中文回答）。
+	prompt := `請仔細分析圖片中的食材和設備，並提供詳細的識別結果(並且用繁體中文回答）(不需要考慮可讀性，請省略所有空格和換行，返回最緊湊的 JSON 格式)。
 		要求：
 		1. 只識別圖片中實際可見的食材和設備
 		2. 不要添加圖片中未出現的物品
@@ -52,6 +52,7 @@ func (s *IngredientService) IdentifyIngredient(ctx context.Context, imageData st
 		5. 所有欄位必須使用雙引號
 		6. 不要使用預設值或猜測值
 		7. 不要使用\n，不需要換行
+		8. 不需要考慮可讀性，請省略所有空格和換行，返回最緊湊的 JSON 格式
 		請以以下 JSON 格式返回：
 		{
 			"ingredients": [

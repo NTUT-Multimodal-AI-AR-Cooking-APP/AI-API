@@ -8,6 +8,8 @@ import (
 	"recipe-generator/internal/core/ai/cache"
 	"recipe-generator/internal/core/ai/service"
 	"recipe-generator/internal/pkg/common"
+
+	"go.uber.org/zap"
 )
 
 // RecipeService 食譜生成服務
@@ -35,7 +37,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 		preferences.ServingSize = "2人份" // 預設為2人份
 	}
 
-	prompt := fmt.Sprintf(`請根據以下食材和偏好，生成一個適合新手的食譜。
+	prompt := fmt.Sprintf(`請根據以下食材和偏好，生成一個適合新手的食譜(並且用繁體中文回答）。
 		菜名：%s
 		食材：
 		%s
@@ -56,6 +58,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 		10. time_minutes 欄位必須是整數，不能有小數點（以秒為單位）
 		11. warnings 欄位必須是字串類型，如果沒有警告事項請填寫 null
 		12. 每個步驟都必須包含 warnings 欄位，不能省略此欄位
+		13. 不要使用\n，不需要換行
 
 		請以以下 JSON 格式返回（僅作為範例，請勿直接複製內容）：
 		{
@@ -123,6 +126,13 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 	if start != -1 && end != -1 && end > start {
 		content = content[start : end+1]
 	}
+
+	// 新增 debug log 輸出 AI 回應內容
+	preview := content
+	common.LogDebug("AI 回應內容 (recipe/generate)",
+		zap.Int("ai_response_length", len(content)),
+		zap.String("ai_response_preview", preview),
+	)
 
 	var result common.Recipe
 	if err := common.ParseJSON(content, &result); err != nil {

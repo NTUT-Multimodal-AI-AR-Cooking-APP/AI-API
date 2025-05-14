@@ -79,32 +79,6 @@ type RecipeByIngredientsRequest struct {
 	} `json:"preference"`
 }
 
-// RecipeByIngredientsResponse 根據食材推薦食譜的回應
-type RecipeByIngredientsResponse struct {
-	SuggestedRecipes []struct {
-		DishName        string       `json:"dish_name"`
-		DishDescription string       `json:"dish_description"`
-		Ingredients     []Ingredient `json:"ingredients"`
-		Equipment       []Equipment  `json:"equipment"`
-		Recipe          []struct {
-			StepNumber  int    `json:"step_number"`
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			Actions     []struct {
-				Action            string   `json:"action"`
-				ToolRequired      string   `json:"tool_required"`
-				MaterialRequired  []string `json:"material_required"`
-				TimeMinutes       int      `json:"time_minutes"`
-				InstructionDetail string   `json:"instruction_detail"`
-			} `json:"actions"`
-			EstimatedTotalTime string  `json:"estimated_total_time"`
-			Temperature        string  `json:"temperature"`
-			Warnings           *string `json:"warnings"`
-			Notes              string  `json:"notes"`
-		} `json:"recipe"`
-	} `json:"suggested_recipes"`
-}
-
 // FormatIngredients 格式化食材列表
 func FormatIngredients(ingredients []Ingredient) string {
 	var sb strings.Builder

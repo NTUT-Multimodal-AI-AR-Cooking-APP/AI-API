@@ -24,25 +24,24 @@ func main() {
 		fmt.Println("Warning: .env file not found")
 	}
 
-	// 初始化 logger（先初始化 logger）
-	if err := common.InitLogger(false); err != nil {
+	// 載入設定
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 初始化 logger（需在載入 config 後）
+	if err := common.InitLogger(cfg.LogLevel); err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer common.Sync()
 
-	// 載入設定
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		common.LogError("Failed to load config", zap.Error(err))
-		os.Exit(1)
-	}
-
 	// 使用 logger 記錄啟動信息
-	common.LogInfo("Starting application",
-		zap.String("version", cfg.App.Version),
-		zap.String("env", cfg.App.Env),
-		zap.Bool("debug", cfg.App.Debug),
+	common.LogInfo("載入設定",
+		zap.String("openrouter_api_key", cfg.OpenRouter.APIKey),
+		zap.String("openrouter_model", cfg.OpenRouter.Model),
 	)
 
 	// 初始化快取
@@ -71,9 +70,10 @@ func main() {
 
 	// 啟動服務器
 	go func() {
-		common.LogInfo("Starting server",
-			zap.Int("port", cfg.Server.Port),
+		common.LogInfo("啟動應用",
+			zap.String("version", cfg.App.Version),
 			zap.String("env", cfg.App.Env),
+			zap.Bool("debug", cfg.App.Debug),
 		)
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
