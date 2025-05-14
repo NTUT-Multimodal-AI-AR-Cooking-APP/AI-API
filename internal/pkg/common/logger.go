@@ -12,10 +12,8 @@ import (
 
 var (
 	// Logger 全局日誌實例
-	Logger *zap.Logger
-
-	// 控制 info log 輸出模式
-	LogMode = os.Getenv("LOG_MODE")
+	Logger  *zap.Logger
+	LogMode string // 只宣告，不初始化
 
 	// 定義日誌級別的顏色
 	levelColors = map[zapcore.Level]string{
@@ -89,6 +87,9 @@ func InitLogger(logLevel string) error {
 		level = zapcore.InfoLevel
 	}
 
+	// 讀取 LOG_MODE（必須在 .env 載入後）
+	LogMode = os.Getenv("LOG_MODE")
+
 	// 創建日誌目錄
 	if err := os.MkdirAll("logs", 0755); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
@@ -136,8 +137,8 @@ func InitLogger(logLevel string) error {
 // LogInfo 記錄信息日誌
 func LogInfo(msg string, fields ...zap.Field) {
 	if LogMode == "concise" {
-		// 只允許 API middleware logger.go 的 "請求完成" log 輸出
-		if msg != "請求完成" {
+		// 只允許 API middleware logger.go 的 "請求完成" log 以及伺服器啟動/關閉訊息輸出
+		if msg != "請求完成" && msg != "啟動應用" && msg != "Server exited" && msg != "Shutting down server..." {
 			return
 		}
 	}
