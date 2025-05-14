@@ -89,7 +89,7 @@ cp .env.example .env
 # 編輯 .env，填入 OpenRouter API Key 等必要參數
 go run cmd/api/main.go
 ```
-服務預設於 [http://<IP>:8080](http://<IP>:8080) 運行。
+服務預設於 [http://\<IP\>:8080](http://<IP>:8080) 運行。
 
 #### Docker 部署
 
