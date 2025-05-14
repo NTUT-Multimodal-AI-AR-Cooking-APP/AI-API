@@ -55,9 +55,11 @@ func (s *Service) ProcessRequest(ctx context.Context, prompt string, imageData s
 		return nil, err
 	}
 
-	// 統一 prompt 格式，去除多餘空白和 tab，確保快取 key 一致
+	// 統一 prompt 格式，去除多餘空白、tab、換行，確保快取 key 一致
 	prompt = strings.TrimSpace(prompt)
 	prompt = strings.ReplaceAll(prompt, "\t", "")
+	prompt = strings.ReplaceAll(prompt, "\n", "")
+	prompt = strings.Join(strings.Fields(prompt), "")
 
 	var processedImageData string
 	if imageData != "" {

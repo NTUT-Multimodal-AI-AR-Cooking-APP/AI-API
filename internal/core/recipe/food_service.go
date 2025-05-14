@@ -93,14 +93,14 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 		6. 請確保識別結果與圖片內容完全相符
 		7. 如果圖片中沒有食物，請返回空列表
 		8. 不要使用\n，不需要換行
-		9.餅根據辨識到的食物給出推論後可能需要用到的食材與製作廚具
-
+		9. 根據辨識到的食物給出推論後可能需要用到的食材與製作廚具
+		10. 不需要考慮可讀性，請省略所有空格和換行，返回最緊湊的 JSON 格式
 		請以以下 JSON 格式返回：
 		{
 			"recognized_foods": [
 				{
 					"name": "食物名稱",
-					"description": "詳細描述",
+					"description": "此食物的特徵與可能料理方式說明",
 					"possible_ingredients": [
 						{
 							"name": "食材名稱",
@@ -119,12 +119,12 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 %s`, descriptionHint)
 
 	// 保存請求數據
-	if err := saveRequestData(prompt, imageData); err != nil {
-		common.LogError("保存請求數據失敗",
-			zap.Error(err),
-			zap.String("image_type", getImageType(imageData)))
-		// 繼續處理，不中斷請求
-	}
+	// if err := saveRequestData(prompt, imageData); err != nil {
+	// 	common.LogError("保存請求數據失敗",
+	// 		zap.Error(err),
+	// 		zap.String("image_type", getImageType(imageData)))
+	// 	// 繼續處理，不中斷請求
+	// }
 
 	// 調用 AI 服務
 	response, err := s.aiService.ProcessRequest(ctx, prompt, imageData)
