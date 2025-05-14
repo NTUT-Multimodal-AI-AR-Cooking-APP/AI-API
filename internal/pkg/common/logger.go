@@ -14,6 +14,9 @@ var (
 	// Logger 全局日誌實例
 	Logger *zap.Logger
 
+	// 控制 info log 輸出模式
+	LogMode = os.Getenv("LOG_MODE")
+
 	// 定義日誌級別的顏色
 	levelColors = map[zapcore.Level]string{
 		zapcore.DebugLevel: "\033[36m", // 青色
@@ -132,6 +135,12 @@ func InitLogger(logLevel string) error {
 
 // LogInfo 記錄信息日誌
 func LogInfo(msg string, fields ...zap.Field) {
+	if LogMode == "concise" {
+		// 只允許 API middleware logger.go 的 "請求完成" log 輸出
+		if msg != "請求完成" {
+			return
+		}
+	}
 	// 過濾掉包含圖片數據的字段
 	filteredFields := make([]zap.Field, 0, len(fields))
 	for _, field := range fields {
