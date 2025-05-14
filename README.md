@@ -1,172 +1,413 @@
-# Recipe Generator API
 
-一個基於 AI 的食譜生成 API 服務，提供食物識別、食材識別和食譜生成功能。
 
----
+# AI Recipe API
 
-## 功能特點
-
-- 🍳 智能食譜生成
-- 🥗 食材與設備圖片辨識
-- 📸 食物圖片辨識
-- ⚡ 高性能與可擴展性
-- 🔒 安全與穩定
+AI 智能食譜 API，支援食譜生成、食材/設備/食物圖片辨識，具備高效快取、速率限制、健康檢查與 Docker 部署。  
+**所有 API 輸入/輸出嚴格遵循 OpenAPI（recipe-api.yaml）規格。**
 
 ---
 
-## 技術架構
-
-- **API 層** (`internal/api/`)
-  - HTTP 處理器、路由、中間件
-- **AI 服務** (`internal/ai/`)
-  - OpenRouter 集成、請求隊列、提示詞處理
-- **食譜服務** (`internal/recipe/`)
-  - 食材/設備/食物辨識、食譜生成
-- **圖片處理** (`internal/image/`)
-  - 圖片優化、格式驗證、大小限制
-- **快取系統** (`internal/cache/`)
-  - 記憶體快取、LRU 策略、TTL 管理
-- **監控與日誌** (`internal/metrics/`, `internal/common/`)
-  - 健康檢查、日誌、性能指標
-
----
-
-## 目錄結構
+## 目錄結構與模組說明
 
 ```
 .
-├── cmd/
-│   └── api/                # 主程式入口
+├── cmd/api/                  # 主程式入口 (main.go)
 ├── internal/
-│   ├── api/               # API 層
-│   ├── ai/                # AI 服務
-│   ├── cache/             # 快取系統
-│   ├── common/            # 通用工具
-│   ├── config/            # 配置管理
-│   ├── image/             # 圖片處理
-│   ├── metrics/           # 監控指標
-│   ├── recipe/            # 食譜服務
-│   └── ...                # 其他模組
-├── pkg/                   # 可重用套件
-├── swagger.yaml           # OpenAPI 文件
-├── Dockerfile
-├── docker-compose.yml
-├── .env
-├── .env.example
+│   ├── api/                  # API 層：路由、handler、中間件
+│   │   ├── handlers/         # 各功能 handler（recipe, health, ...）
+│   │   ├── middleware/       # 請求日誌、限流、去重等中間件
+│   │   └── router.go         # 路由註冊
+│   ├── core/
+│   │   ├── ai/               # AI 服務、快取、OpenRouter 整合
+│   │   │   ├── cache/        # 記憶體快取（LRU/TTL）
+│   │   │   ├── openrouter/   # OpenRouter API 封裝
+│   │   │   ├── provider/     # AI 供應商抽象
+│   │   │   ├── queue/        # 請求佇列
+│   │   │   └── service/      # AI 請求服務
+│   │   └── recipe/           # 食譜、食材、食物業務邏輯
+│   └── infrastructure/       # 設定載入、共用工具
+├── recipe-api.yaml           # OpenAPI 規格（API schema 定義）
+├── Dockerfile                # 多階段建構，含健康檢查
+├── .env.example              # 環境變數範例
+├── docker-compose.yml        # 多服務協同部署（如有）
 └── README.md
 ```
 
 ---
 
+## 專案設計理念
+
+- **嚴格 API Schema 驗證**：所有 handler 輸入/輸出皆與 OpenAPI 規格完全一致，便於前後端協作與自動化測試。
+- **AI 驅動**：整合 OpenRouter（Google Gemini）模型，確保食譜生成與辨識結果具備高品質與彈性。
+- **高效快取與限流**：純記憶體快取（無外部 Redis），支援 TTL、LRU、請求去重與速率限制，保證高併發下的穩定性。
+- **現代化日誌**：多級日誌、中文標題、避免敏感/大資料外洩，方便除錯與維運。
+- **健康檢查與自動監控**：/health、/ready、/live 路由，Docker HEALTHCHECK，便於雲端部署與自動化監控。
+- **可擴展性**：所有業務邏輯、AI 供應商、快取、限流皆可獨立擴充。
+
+---
+
+## 技術選型
+
+- **Go 1.21+**：高效能、易維護
+- **Gin**：API 路由與中間件
+- **OpenAPI 3.0**：API schema 驗證與自動文件
+- **OpenRouter**：AI 服務（Google Gemini）
+- **Zap**：高效結構化日誌
+- **In-memory LRU/TTL Cache**：極速快取
+- **Docker**：一致性部署
+- **.env**：環境變數集中管理
+
+---
+
+## 主要功能
+
+- **AI 食譜生成**：根據食材、偏好自動產生詳細新手友善食譜
+- **圖片辨識**：支援食物、食材、設備圖片辨識
+- **高效快取**：純記憶體快取，支援 TTL、LRU
+- **速率限制**：可設定請求速率與去重時間窗
+- **健康檢查**：/health、/ready、/live 路由，Docker HEALTHCHECK
+- **多級日誌**：info/debug/error，中文標題，避免敏感/大資料外洩
+- **OpenRouter (Google Gemini) AI 整合**
+
+---
+
 ## 快速開始
 
-### 環境需求
+### 1. 環境需求
 
-- Go 1.21 或更高版本
-- Docker (可選，用於容器化部署)
+- Go 1.21+
+- Docker（建議部署用）
 
-### 本地開發
+### 2. 安裝與啟動
 
-1. 克隆倉庫：
+#### 本地開發
+
 ```bash
-git clone <repository-url>
-cd recipe-generator
-```
-
-2. 設置環境變量：
-```bash
+git clone <your-repo-url>
+cd <project-folder>
 cp .env.example .env
-# 編輯 .env 文件，設置必要的環境變數
-```
-
-3. 運行服務：
-```bash
+# 編輯 .env，填入 OpenRouter API Key 等必要參數
 go run cmd/api/main.go
 ```
+服務預設於 [http://localhost:8080](http://localhost:8080) 運行。
 
-服務將在 http://localhost:8080 上運行。
+#### Docker 部署
 
-### Docker 部署
-
-1. 構建鏡像：
 ```bash
 docker build -t recipe-generator .
-```
-
-2. 運行容器：
-```bash
 docker run -p 8080:8080 --env-file .env recipe-generator
 ```
 
-### Docker Compose
+#### Docker Compose
 
 ```bash
 docker-compose up --build -d
-# 預設服務於 http://localhost:8080
 ```
 
 ---
 
-## API 文件與 Swagger 部署
+## API 文件
 
-本專案已提供完整的 OpenAPI (Swagger) 文件，詳見 `swagger.yaml`。
-
-### 如何預覽 API 文件
-
-- **線上預覽**：將 `swagger.yaml` 上傳至 [Swagger Editor](https://editor.swagger.io/) 直接瀏覽。
-- **本地預覽**：
-  ```sh
-  docker run -p 8081:8080 -v $PWD/swagger.yaml:/swagger.yaml swaggerapi/swagger-ui
-  # 然後瀏覽 http://localhost:8081
+- OpenAPI 規格：`recipe-api.yaml`
+- 預覽建議：[Swagger Editor](https://editor.swagger.io/) 或
+  ```bash
+  docker run -p 8081:8080 -v $PWD/recipe-api.yaml:/swagger.yaml swaggerapi/swagger-ui
+  # 瀏覽 http://localhost:8081
   ```
 
-### 如何部署 Swagger UI（建議用於團隊協作或內部文件）
-
-1. 將 `swagger.yaml` 放在專案根目錄或伺服器上。
-2. 使用官方 Docker 映像部署：
-   ```sh
-   docker run -d -p 8081:8080 -v $PWD/swagger.yaml:/swagger.yaml swaggerapi/swagger-ui
-   ```
-3. 內網或雲端部署後，團隊可直接瀏覽 API 文件。
-
-### 主要 API 端點
+### 主要端點
 
 - `POST /api/v1/recipe/food` — 圖片辨識食物
 - `POST /api/v1/recipe/ingredient` — 圖片辨識食材與設備
-- `POST /api/v1/recipe/generate` — 使用食物名稱與偏好生成詳細新手友善食譜
-- `POST /api/v1/recipe/suggest` — 使用食材與設備推薦適合的食譜
+- `POST /api/v1/recipe/generate` — 依據名稱/偏好生成詳細食譜
+- `POST /api/v1/recipe/suggest` — 根據食材/設備推薦食譜
+- `GET /health` `/ready` `/live` — 健康檢查
 
-詳細請參考 `swagger.yaml` 內的 schema 與範例。
-
-### 型別自動產生與驗證
-
-- 可用 [oapi-codegen](https://github.com/deepmap/oapi-codegen) 產生 Go 型別與驗證。
-- 或用 [swaggo/swag](https://github.com/swaggo/swag) 產生 Swagger UI（需在 handler 上加註解）。
+**所有 API 輸入/輸出皆嚴格遵循 OpenAPI schema，請參考 `recipe-api.yaml`。**
 
 ---
 
-## 配置說明
+## API 欄位說明與範例
 
-- `.env` 內可設定 API 金鑰、埠號、快取、限流等參數
-- 圖片最大 5MB，支援 JPEG/PNG
-- 服務預設監聽 8080 埠
+### 1. 食物圖片辨識
+
+**請求**
+```json
+POST /api/v1/recipe/food
+{
+  "image": "data:image/jpeg;base64,...",
+  "description_hint": "一盤炒飯"
+}
+```
+**回應**
+```json
+{
+  "recognized_foods": [
+    {
+      "name": "炒飯",
+      "description": "經典中式炒飯",
+      "possible_ingredients": [
+        { "name": "米飯", "type": "主食" },
+        { "name": "蛋", "type": "蛋類" }
+      ],
+      "possible_equipment": [
+        { "name": "炒鍋", "type": "鍋具" }
+      ]
+    }
+  ]
+}
+```
+- `image`：支援 base64 或 URL
+- `description_hint`：可選，輔助 AI 辨識
+
+### 2. 食材/設備圖片辨識
+
+**請求**
+```json
+POST /api/v1/recipe/ingredient
+{
+  "image": "data:image/png;base64,...",
+  "description_hint": "蔬菜和鍋子"
+}
+```
+**回應**
+```json
+{
+  "ingredients": [
+    { "name": "青江菜", "type": "蔬菜", "amount": "2", "unit": "株", "preparation": "洗淨" }
+  ],
+  "equipment": [
+    { "name": "炒鍋", "type": "鍋具", "size": "中型", "material": "鐵", "power_source": "瓦斯" }
+  ],
+  "summary": "包含蔬菜與鍋具"
+}
+```
+
+### 3. 依名稱/偏好生成食譜
+
+**請求**
+```json
+POST /api/v1/recipe/generate
+{
+  "dish_name": "番茄炒蛋",
+  "preferred_ingredients": ["番茄", "蛋"],
+  "excluded_ingredients": ["蔥"],
+  "preferred_equipment": ["炒鍋"],
+  "preference": {
+    "cooking_method": "炒",
+    "doneness": "全熟",
+    "serving_size": "2人份"
+  }
+}
+```
+**回應**
+```json
+{
+  "dish_name": "番茄炒蛋",
+  "dish_description": "經典家常菜，酸甜開胃",
+  "ingredients": [
+    { "name": "番茄", "type": "蔬菜", "amount": "2", "unit": "顆", "preparation": "切塊" },
+    { "name": "蛋", "type": "蛋類", "amount": "3", "unit": "顆", "preparation": "打散" }
+  ],
+  "equipment": [
+    { "name": "炒鍋", "type": "鍋具", "size": "中型", "material": "鐵", "power_source": "瓦斯" }
+  ],
+  "recipe": [
+    {
+      "step_number": 1,
+      "title": "備料",
+      "description": "將番茄切塊，蛋打散備用。",
+      "actions": [
+        {
+          "action": "切塊",
+          "tool_required": "刀",
+          "material_required": ["番茄"],
+          "time_minutes": 2,
+          "instruction_detail": "番茄切成適口大小"
+        }
+      ],
+      "estimated_total_time": "2分鐘",
+      "temperature": "常溫",
+      "warnings": null,
+      "notes": ""
+    }
+  ]
+}
+```
+- `preference` 欄位可細緻指定烹飪方式、熟度、份量
+
+### 4. 根據食材/設備推薦食譜
+
+**請求**
+```json
+POST /api/v1/recipe/suggest
+{
+  "available_ingredients": [
+    { "name": "蛋", "type": "蛋類", "amount": "2", "unit": "顆", "preparation": "打散" }
+  ],
+  "available_equipment": [
+    { "name": "平底鍋", "type": "鍋具", "size": "小型", "material": "不沾", "power_source": "電" }
+  ],
+  "preference": {
+    "cooking_method": "煎",
+    "dietary_restrictions": ["無麩質"],
+    "serving_size": "1人份"
+  }
+}
+```
+**回應**
+```json
+{
+  "dish_name": "煎蛋",
+  "dish_description": "簡單快速的早餐料理",
+  "ingredients": [
+    { "name": "蛋", "type": "蛋類", "amount": "2", "unit": "顆", "preparation": "打散" }
+  ],
+  "equipment": [
+    { "name": "平底鍋", "type": "鍋具", "size": "小型", "material": "不沾", "power_source": "電" }
+  ],
+  "recipe": [
+    {
+      "step_number": 1,
+      "title": "煎蛋",
+      "description": "將蛋液倒入鍋中，小火煎熟。",
+      "actions": [
+        {
+          "action": "煎",
+          "tool_required": "平底鍋",
+          "material_required": ["蛋"],
+          "time_minutes": 3,
+          "instruction_detail": "蛋液均勻攤平"
+        }
+      ],
+      "estimated_total_time": "3分鐘",
+      "temperature": "小火",
+      "warnings": null,
+      "notes": "可加鹽調味"
+    }
+  ]
+}
+```
 
 ---
 
-## 監控與維護
+## 健康檢查 API 回應格式
 
-- `/health` `/ready` `/live` — 健康檢查端點
-- 日誌與錯誤追蹤
-- 請求限流與快取策略
+### /health
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-06-01T12:00:00Z",
+  "version": "1.0.0",
+  "runtime": {
+    "goroutines": 8,
+    "memory": {
+      "alloc": 12345678,
+      "total_alloc": 23456789,
+      "sys": 34567890,
+      "num_gc": 12
+    }
+  }
+}
+```
+
+### /ready
+```json
+{ "status": "ready" }
+```
+
+### /live
+```json
+{ "status": "alive" }
+```
 
 ---
 
-## 貢獻指南
+## 主要環境變數（.env）說明
+
+| 變數名稱 | 說明 | 範例/預設值 |
+|---|---|---|
+| PORT | 服務監聽埠號 | 8080 |
+| APP_OPENROUTER_API_KEY | OpenRouter API 金鑰 | your-api-key-here |
+| APP_OPENROUTER_MODEL | 預設 AI 模型 | google/gemini-2.0-flash-001 |
+| CACHE_ENABLED | 是否啟用快取 | true |
+| CACHE_MAX_SIZE | 快取最大數量 | 1000 |
+| CACHE_TTL | 單筆快取有效時間 | 1h |
+| RATE_LIMIT_ENABLED | 是否啟用速率限制 | true |
+| RATE_LIMIT_REQUESTS | 每視窗最大請求數 | 100 |
+| RATE_LIMIT_WINDOW | 限流視窗大小 | 1m |
+| DEDUP_WINDOW | 請求去重時間窗 | 500ms |
+| LOG_LEVEL | 日誌等級 | info |
+| APP_ENV | 執行環境 | development |
+| APP_DEBUG | 是否啟用 debug | true |
+| ... | 其餘請參考 .env.example |  |
+
+---
+
+## 日誌策略
+
+- **info**：僅記錄請求摘要、標題、狀態
+- **debug**：詳細記錄 AI 請求/回應（不含圖片/敏感資料）
+- **error**：錯誤堆疊、AI 解析失敗、外部服務異常
+- **中文標題**：所有 log 標題皆為中文，方便維運
+- **避免大資料外洩**：圖片、AI 回應大欄位不進 info log
+
+---
+
+## 快取、限流、去重設計細節
+
+- **快取**：純記憶體 LRU+TTL，依 .env 設定最大數量與存活時間
+- **限流**：每個 API 可依 .env 設定速率與視窗
+- **請求去重**：同一內容 POST 請求於 DEDUP_WINDOW 內只處理一次
+- **所有參數皆可熱調整**（重啟生效）
+
+---
+
+## 錯誤處理
+
+- **API 回應皆為標準 JSON**，包含 error code、訊息、細節
+- **AI 回應格式錯誤**：自動偵測 markdown、截斷、型別不符，並回傳友善錯誤
+- **健康檢查失敗**：/health 會回傳詳細錯誤與 runtime 狀態
+
+---
+
+## 部署建議
+
+- 建議使用 Docker 或 Docker Compose 部署，確保環境一致性。
+- Dockerfile 已設置 HEALTHCHECK，Kubernetes/雲端平台可自動監控存活。
+- 建議將 .env 檔案與敏感資訊妥善管理，不要提交到公開倉庫。
+- 可用 Nginx 等反向代理加強安全性與流量管理。
+- 支援多執行緒與高併發，適合雲端自動擴展
+
+---
+
+## 開發流程與貢獻指南
 
 1. Fork 專案
-2. 創建功能分支
-3. 提交更改
-4. 發起合併請求
+2. 創建功能分支（feature/xxx）
+3. 撰寫/修改程式碼，確保符合 OpenAPI schema
+4. 執行 `gofmt` 格式化
+5. 本地測試（go run/curl 測 API）
+6. 發起 Pull Request，描述修改內容與動機
+
+---
+
+## 常見問題 FAQ
+
+**Q: AI 回應格式錯誤或 JSON 解析失敗？**  
+- 請檢查 prompt 是否明確要求 AI 嚴格回傳 JSON，或調整模型參數（如 temperature）。
+- 查看 debug log 取得 AI 原始回應內容。
+
+**Q: 為什麼健康檢查顯示 unhealthy？**  
+- 請確認服務有正常啟動，且 /health 路由可被存取。
+- 檢查 Docker log 與 .env 設定。
+
+**Q: 如何擴充 API？**  
+- 於 internal/api/handlers/recipe/ 新增 handler，並於 router.go 註冊路由。
+- schema 需同步更新 recipe-api.yaml。
+
+**Q: 如何自訂 AI 供應商或模型？**  
+- 修改 .env 的 APP_OPENROUTER_MODEL，或擴充 internal/core/ai/provider/。
 
 ---
 
@@ -176,95 +417,9 @@ MIT License
 
 ---
 
-如需協助或有任何建議，歡迎提 issue 或聯絡作者！
+如需協助或有建議，歡迎提 issue 或聯絡作者。
 
-## 環境變量配置
+---
 
-在 `.env` 文件中配置以下環境變量：
-
-### 服務器配置
-```
-PORT=8080
-ENV=development
-SERVER_READ_TIMEOUT=10s
-SERVER_WRITE_TIMEOUT=10s
-SERVER_IDLE_TIMEOUT=120s
-```
-
-### 應用程式配置
-```
-APP_ENV=development
-APP_DEBUG=true
-LOG_LEVEL=info
-APP_VERSION=1.0.0
-APP_NAME=recipe-generator
-```
-
-### OpenRouter 配置
-```
-APP_OPENROUTER_API_KEY=your-api-key-here
-APP_OPENROUTER_MODEL=google/gemini-2.0-flash-001
-```
-
-### 供應商配置
-```
-PROVIDER_ENABLED=false
-PROVIDER_ONLY=  # 例如: Alibaba,OpenAI,Together
-PROVIDER_IGNORE=  # 例如: Together
-PROVIDER_ORDER=  # 例如: OpenAI,Alibaba,Together
-PROVIDER_DATA_COLLECTION=deny  # deny 或 allow
-```
-
-### 模型參數配置
-```
-MODEL_TEMPERATURE=0.7
-MODEL_MAX_TOKENS=2048
-MODEL_TOP_P=0.9
-MODEL_TOP_K=40
-MODEL_PRESENCE_PENALTY=0.0
-MODEL_FREQUENCY_PENALTY=0.0
-```
-
-### 圖片配置
-```
-MAX_IMAGE_SIZE=5242880
-ALLOWED_IMAGE_TYPES=image/jpeg,image/png
-```
-
-### 快取配置
-```
-CACHE_ENABLED=true
-CACHE_MAX_SIZE=1000
-CACHE_TTL=1h
-CACHE_CLEANUP_INTERVAL=10m
-```
-
-### 限流配置
-```
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REQUESTS=100
-RATE_LIMIT_WINDOW=1m
-```
-
-### 隊列配置
-```
-QUEUE_WORKERS=5
-QUEUE_MAX_SIZE=100
-```
-
-## 開發
-
-### 代碼風格
-- 使用 `gofmt` 格式化代碼
-- 遵循 Go 標準代碼風格指南
-
-### 測試
-```bash
-go test ./...
-```
-
-### 構建
-```bash
-go build -o recipe-generator ./cmd/api
-```
+如需更詳細的 API schema、請參考 `recipe-api.yaml` 及原始碼註解。
 

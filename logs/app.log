@@ -2232,3 +2232,6 @@
 {"level":"\u001b[31mERR\u001b[0m","time":"01:08:47.023","msg":"AI 服務請求失敗","service":"recipe-generator","error":"failed to process image: invalid image data format"}
 {"level":"\u001b[31mERR\u001b[0m","time":"01:08:47.023","msg":"圖片格式錯誤 (AI service)","service":"recipe-generator","error":"failed to process image: invalid image data format","request_id":"e907c526-53f0-447a-832b-1458a6b07ac6","image_type":"unknown_format","image_length":18,"description_hint":""}
 {"level":"\u001b[33mWRN\u001b[0m","time":"01:08:47.023","msg":"用戶端錯誤","service":"recipe-generator","status":400,"method":"POST","path":"/api/v1/recipe/food","ip":"::1","user-agent":"python-requests/2.32.3","latency":"1.033292ms","request_id":"","error_type":"client_error"}
+{"level":"\u001b[32mINF\u001b[0m","time":"01:16:38.513","msg":"Shutting down server...","service":"recipe-generator"}
+{"level":"\u001b[32mINF\u001b[0m","time":"01:16:38.513","msg":"Server exited","service":"recipe-generator"}
+{"level":"\u001b[32mINF\u001b[0m","time":"01:16:38.513","msg":"快取管理員已關閉","service":"recipe-generator","命中次數":0,"未命中次數":4,"淘汰次數":0}

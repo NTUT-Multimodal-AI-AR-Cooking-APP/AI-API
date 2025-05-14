@@ -5,7 +5,7 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /app
 
 # 安裝必要的構建工具
-RUN apk add --no-cache git
+RUN apk add --no-cache git curl
 
 # 複製 go.mod 和 go.sum
 COPY go.mod go.sum ./
@@ -41,5 +41,7 @@ EXPOSE 8080
 ENV APP_ENV=production
 
 # 運行應用
+HEALTHCHECK --interval=1m --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 CMD ["./recipe-generator"]
 
