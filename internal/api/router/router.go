@@ -12,7 +12,6 @@ import (
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
-	err        error
 }
 
 // WriteHeader 實現 http.ResponseWriter 介面
@@ -43,27 +42,5 @@ func errorHandler(next http.Handler) http.Handler {
 
 		// 處理請求
 		next.ServeHTTP(rw, r)
-
-		// 檢查錯誤
-		if rw.err != nil {
-			// 檢查是否為驗證錯誤
-			if common.IsValidationError(rw.err) {
-				common.LogError("Validation error",
-					zap.Error(rw.err),
-					zap.String("path", r.URL.Path),
-					zap.String("method", r.Method),
-				)
-				http.Error(w, rw.err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			// 其他錯誤返回 500
-			common.LogError("Server error",
-				zap.Error(rw.err),
-				zap.String("path", r.URL.Path),
-				zap.String("method", r.Method),
-			)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
 	})
 }

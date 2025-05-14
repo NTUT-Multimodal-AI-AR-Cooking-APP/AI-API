@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -65,6 +66,7 @@ func RateLimit(requests int, window time.Duration) gin.HandlerFunc {
 				zap.String("path", c.Request.URL.Path),
 			)
 
+			c.Header("Retry-After", fmt.Sprintf("%d", int(window.Seconds())))
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "Too many requests",
 				"retry_after": window.Seconds(),

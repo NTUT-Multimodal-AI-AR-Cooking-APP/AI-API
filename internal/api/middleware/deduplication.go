@@ -23,10 +23,39 @@ var (
 	}{
 		requests: make(map[string]time.Time),
 	}
+
+	// 啟動自動清理 goroutine（只啟動一次）
+	cleanupOnce sync.Once
 )
+
+// 啟動自動清理 goroutine
+func startDeduplicationCleanup(cfg *config.Config) {
+	cleanupOnce.Do(func() {
+		interval := 10 * time.Minute
+		window := 1 * time.Second
+		if cfg != nil && cfg.DedupWindow > 0 {
+			window = cfg.DedupWindow
+		}
+		go func() {
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			for range ticker.C {
+				now := time.Now()
+				requestCache.Lock()
+				for k, t := range requestCache.requests {
+					if now.Sub(t) > 10*window {
+						delete(requestCache.requests, k)
+					}
+				}
+				requestCache.Unlock()
+			}
+		}()
+	})
+}
 
 // Deduplication 請求去重中間件，支援從 config 取得 dedupWindow
 func Deduplication(cfg *config.Config) gin.HandlerFunc {
+	startDeduplicationCleanup(cfg)
 	return func(c *gin.Context) {
 		dedupWindow := 1 * time.Second
 		if cfg != nil && cfg.DedupWindow > 0 {
