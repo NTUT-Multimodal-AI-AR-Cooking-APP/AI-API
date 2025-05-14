@@ -89,13 +89,16 @@ cp .env.example .env
 # 編輯 .env，填入 OpenRouter API Key 等必要參數
 go run cmd/api/main.go
 ```
-服務預設於 [http://localhost:8080](http://localhost:8080) 運行。
+服務預設於 [http://<IP>:8080](http://<IP>:8080) 運行。
 
 #### Docker 部署
 
 ```bash
 docker build -t recipe-generator .
-docker run -p 8080:8080 --env-file .env recipe-generator
+docker run -d --name recipe-generator-api -p 8080:8080 -v $(pwd)/.env:/app/.env recipe-generator
+//背景運行
+docker run --name recipe-generator-api -p 8080:8080 -v $(pwd)/.env:/app/.env recipe-generator
+//前台運行
 ```
 
 #### Docker Compose
