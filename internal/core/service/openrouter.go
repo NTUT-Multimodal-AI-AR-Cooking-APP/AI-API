@@ -36,10 +36,15 @@ func NewOpenRouterService(cfg *config.Config) *OpenRouterService {
 
 // GenerateResponse 生成回應
 func (s *OpenRouterService) GenerateResponse(ctx context.Context, prompt string, imageData string) (string, error) {
+	// 簡化 prompt：去除多餘換行、前後空白、連續空白合併為一格
+	simplePrompt := strings.TrimSpace(prompt)
+	simplePrompt = strings.ReplaceAll(simplePrompt, "\n", "")
+	simplePrompt = strings.Join(strings.Fields(simplePrompt), "")
+
 	msgContent := []map[string]interface{}{
 		{
 			"type": "text",
-			"text": prompt,
+			"text": simplePrompt,
 		},
 	}
 	imageUrlDebug := ""

@@ -43,38 +43,37 @@ func (s *IngredientService) IdentifyIngredient(ctx context.Context, imageData st
 	}
 
 	// 構建提示
-	prompt := `請仔細分析圖片中的食材和設備，並提供詳細的識別結果。
-
-要求：
-1. 只識別圖片中實際可見的食材和設備
-2. 不要添加圖片中未出現的物品
-3. 根據圖片內容判斷數量、單位和處理方式
-4. 如果無法確定某個屬性，請使用 "未知" 而不是猜測
-5. 所有欄位必須使用雙引號
-6. 不要使用預設值或猜測值
-
-請以以下 JSON 格式返回：
-{
-    "ingredients": [
-        {
-            "name": "食材名稱",
-            "type": "食材類型",
-            "amount": "數量",
-            "unit": "單位",
-            "preparation": "處理方式"
-        }
-    ],
-    "equipment": [
-        {
-            "name": "設備名稱",
-            "type": "設備類型",
-            "size": "尺寸",
-            "material": "材質",
-            "power_source": "能源類型"
-        }
-    ],
-    "summary": "簡要描述圖片中的內容"
-}`
+	prompt := `請仔細分析圖片中的食材和設備，並提供詳細的識別結果(並且用繁體中文回答）。
+		要求：
+		1. 只識別圖片中實際可見的食材和設備
+		2. 不要添加圖片中未出現的物品
+		3. 根據圖片內容判斷數量、單位和處理方式
+		4. 如果無法確定某個屬性，請使用 "未知" 而不是猜測
+		5. 所有欄位必須使用雙引號
+		6. 不要使用預設值或猜測值
+		7. 不要使用\n，不需要換行
+		請以以下 JSON 格式返回：
+		{
+			"ingredients": [
+				{
+					"name": "食材名稱",
+					"type": "食材類型",
+					"amount": "數量",
+					"unit": "單位",
+					"preparation": "處理方式"
+				}
+			],
+			"equipment": [
+				{
+					"name": "設備名稱",
+					"type": "設備類型",
+					"size": "尺寸",
+					"material": "材質",
+					"power_source": "能源類型"
+				}
+			],
+			"summary": "辨識內容摘要，方便使用者核對確認"
+		}`
 
 	// 發送請求到 AI 服務
 	response, err := s.aiService.ProcessRequest(ctx, prompt, processedImage)

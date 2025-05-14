@@ -84,38 +84,38 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 	)
 
 	// 構建提示詞
-	prompt := fmt.Sprintf(`請仔細分析圖片中的食物，並以 JSON 格式返回結果。要求：
-1. 只識別圖片中實際可見的食物
-2. 不要添加圖片中未出現的食物
-3. 如果無法確定某個屬性，請使用 "未知" 而不是猜測
-4. 所有欄位必須使用雙引號
-5. 不要使用預設值或猜測值
-6. 請確保識別結果與圖片內容完全相符
-7. 如果圖片中沒有食物，請返回空列表
-8. 不要使用\n，不需要換行
+	prompt := fmt.Sprintf(`請仔細分析圖片中的食物，並以 JSON 格式返回結果(並且用繁體中文回答）。要求：
+		1. 只識別圖片中實際可見的食物
+		2. 不要添加圖片中未出現的食物
+		3. 如果無法確定某個屬性，請使用 "未知" 而不是猜測
+		4. 所有欄位必須使用雙引號
+		5. 不要使用預設值或猜測值
+		6. 請確保識別結果與圖片內容完全相符
+		7. 如果圖片中沒有食物，請返回空列表
+		8. 不要使用\n，不需要換行
+		9.餅根據辨識到的食物給出推論後可能需要用到的食材與製作廚具
 
-請以以下 JSON 格式返回：
-{
-    "recognized_foods": [
-        {
-            "name": "食物名稱",
-            "description": "詳細描述",
-            "possible_ingredients": [
-                {
-                    "name": "食材名稱",
-                    "type": "食材類型"
-                }
-            ],
-            "possible_equipment": [
-                {
-                    "name": "設備名稱",
-                    "type": "設備類型"
-                }
-            ]
-        }
-    ]
-}
-
+		請以以下 JSON 格式返回：
+		{
+			"recognized_foods": [
+				{
+					"name": "食物名稱",
+					"description": "詳細描述",
+					"possible_ingredients": [
+						{
+							"name": "食材名稱",
+							"type": "食材類型"
+						}
+					],
+					"possible_equipment": [
+						{
+							"name": "設備名稱",
+							"type": "設備類型"
+						}
+					]
+				}
+			]
+		}
 %s`, descriptionHint)
 
 	// 保存請求數據
