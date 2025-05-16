@@ -61,6 +61,8 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
 12. warnings 欄位必須是字串類型，如果沒有警告事項請填寫 null
 13. 每個步驟都必須包含 warnings 欄位，不能省略此欄位
 14. 不要使用\n，不需要換行
+15. 所有欄位都必須要有不能漏掉，如果不知道填什麼請留空 "" or null
+16. 所有欄位都必須要有不能漏掉，如果不知道填什麼請留空 "" or null
 
 請以以下 JSON 格式返回（僅作為範例，請勿直接複製內容）：
 {
