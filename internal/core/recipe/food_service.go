@@ -92,9 +92,10 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 5. 不要使用預設值或猜測值
 6. 請確保識別結果與圖片內容完全相符
 7. 如果圖片中沒有食物，請返回空列表
-		8. 不要使用\n，不需要換行
-		9. 根據辨識到的食物給出推論後可能需要用到的食材與製作廚具
-		10. 不需要考慮可讀性，請省略所有空格和換行，返回最緊湊的 JSON 格式
+8. 不要使用\n，不需要換行
+9. 根據辨識到的食物給出推論後可能需要用到的食材與製作廚具
+10. 不需要考慮可讀性，請省略所有空格和換行，返回最緊湊的 JSON 格式
+11. 所有欄位都必須要有不能漏掉，如果不知道填什麼請留空 "" or null
 請以以下 JSON 格式返回：
 {
     "recognized_foods": [
@@ -149,6 +150,36 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 			zap.Error(err),
 		)
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
+	}
+
+	// 檢查並補充空值
+	for i := range result.RecognizedFoods {
+		if result.RecognizedFoods[i].Name == "" {
+			result.RecognizedFoods[i].Name = "未知食物"
+		}
+		if result.RecognizedFoods[i].Description == "" {
+			result.RecognizedFoods[i].Description = "無描述"
+		}
+
+		// 檢查並補充可能的食材
+		for j := range result.RecognizedFoods[i].PossibleIngredients {
+			if result.RecognizedFoods[i].PossibleIngredients[j].Name == "" {
+				result.RecognizedFoods[i].PossibleIngredients[j].Name = "未知食材"
+			}
+			if result.RecognizedFoods[i].PossibleIngredients[j].Type == "" {
+				result.RecognizedFoods[i].PossibleIngredients[j].Type = "未知類型"
+			}
+		}
+
+		// 檢查並補充可能的設備
+		for j := range result.RecognizedFoods[i].PossibleEquipment {
+			if result.RecognizedFoods[i].PossibleEquipment[j].Name == "" {
+				result.RecognizedFoods[i].PossibleEquipment[j].Name = "未知設備"
+			}
+			if result.RecognizedFoods[i].PossibleEquipment[j].Type == "" {
+				result.RecognizedFoods[i].PossibleEquipment[j].Type = "未知類型"
+			}
+		}
 	}
 
 	// 記錄成功信息
