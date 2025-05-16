@@ -98,7 +98,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 			],
 			"estimated_total_time": "時間",
 			"temperature": "火侯",
-			"warnings": null,
+			"warnings": "警告事項",
 			"notes": "備註"
 			}
 		]
