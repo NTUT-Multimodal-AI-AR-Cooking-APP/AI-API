@@ -152,6 +152,36 @@ func (s *FoodService) IdentifyFood(ctx context.Context, imageData string, descri
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
+	// 檢查並補充空值
+	for i := range result.RecognizedFoods {
+		if result.RecognizedFoods[i].Name == "" {
+			result.RecognizedFoods[i].Name = "未知食物"
+		}
+		if result.RecognizedFoods[i].Description == "" {
+			result.RecognizedFoods[i].Description = "無描述"
+		}
+
+		// 檢查並補充可能的食材
+		for j := range result.RecognizedFoods[i].PossibleIngredients {
+			if result.RecognizedFoods[i].PossibleIngredients[j].Name == "" {
+				result.RecognizedFoods[i].PossibleIngredients[j].Name = "未知食材"
+			}
+			if result.RecognizedFoods[i].PossibleIngredients[j].Type == "" {
+				result.RecognizedFoods[i].PossibleIngredients[j].Type = "未知類型"
+			}
+		}
+
+		// 檢查並補充可能的設備
+		for j := range result.RecognizedFoods[i].PossibleEquipment {
+			if result.RecognizedFoods[i].PossibleEquipment[j].Name == "" {
+				result.RecognizedFoods[i].PossibleEquipment[j].Name = "未知設備"
+			}
+			if result.RecognizedFoods[i].PossibleEquipment[j].Type == "" {
+				result.RecognizedFoods[i].PossibleEquipment[j].Type = "未知類型"
+			}
+		}
+	}
+
 	// 記錄成功信息
 	common.LogInfo("食物識別成功",
 		zap.Int("foods_count", len(result.RecognizedFoods)),

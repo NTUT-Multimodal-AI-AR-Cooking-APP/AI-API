@@ -95,10 +95,46 @@ func (s *IngredientService) IdentifyIngredient(ctx context.Context, imageData st
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// 確保所有設備都有尺寸
+	// 檢查並補充空值
+	if result.Summary == "" {
+		result.Summary = "無摘要"
+	}
+
+	// 檢查並補充食材資訊
+	for i := range result.Ingredients {
+		if result.Ingredients[i].Name == "" {
+			result.Ingredients[i].Name = "未知食材"
+		}
+		if result.Ingredients[i].Type == "" {
+			result.Ingredients[i].Type = "未知類型"
+		}
+		if result.Ingredients[i].Amount == "" {
+			result.Ingredients[i].Amount = "適量"
+		}
+		if result.Ingredients[i].Unit == "" {
+			result.Ingredients[i].Unit = "份"
+		}
+		if result.Ingredients[i].Preparation == "" {
+			result.Ingredients[i].Preparation = "無特殊處理"
+		}
+	}
+
+	// 檢查並補充設備資訊
 	for i := range result.Equipment {
+		if result.Equipment[i].Name == "" {
+			result.Equipment[i].Name = "未知設備"
+		}
+		if result.Equipment[i].Type == "" {
+			result.Equipment[i].Type = "未知類型"
+		}
 		if result.Equipment[i].Size == "" {
-			result.Equipment[i].Size = "未知"
+			result.Equipment[i].Size = "標準"
+		}
+		if result.Equipment[i].Material == "" {
+			result.Equipment[i].Material = "未知"
+		}
+		if result.Equipment[i].PowerSource == "" {
+			result.Equipment[i].PowerSource = "未知"
 		}
 	}
 

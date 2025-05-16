@@ -63,6 +63,7 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
 14. 不要使用\n，不需要換行
 15. 所有欄位都必須要有不能漏掉，如果不知道填什麼請留空 "" or null
 16. 所有欄位都必須要有不能漏掉，如果不知道填什麼請留空 "" or null
+17. 只回傳一個獨立的json，不要回傳多個json
 
 請以以下 JSON 格式返回（僅作為範例，請勿直接複製內容）：
 {
@@ -144,11 +145,100 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	// 確保每個步驟都有 warnings 欄位
-	for i := range result.Recipe {
-		if result.Recipe[i].Warnings == "" {
-			result.Recipe[i].Warnings = "null"
+	// 檢查並補充空值
+	if result.DishName == "" {
+		result.DishName = "未知菜名"
+	}
+	if result.DishDescription == "" {
+		result.DishDescription = "無描述"
+	}
+
+	// 檢查並補充食材資訊
+	for i := range result.Ingredients {
+		if result.Ingredients[i].Name == "" {
+			result.Ingredients[i].Name = "未知食材"
 		}
+		if result.Ingredients[i].Type == "" {
+			result.Ingredients[i].Type = "未知類型"
+		}
+		if result.Ingredients[i].Amount == "" {
+			result.Ingredients[i].Amount = "適量"
+		}
+		if result.Ingredients[i].Unit == "" {
+			result.Ingredients[i].Unit = "份"
+		}
+		if result.Ingredients[i].Preparation == "" {
+			result.Ingredients[i].Preparation = "無特殊處理"
+		}
+	}
+
+	// 檢查並補充設備資訊
+	for i := range result.Equipment {
+		if result.Equipment[i].Name == "" {
+			result.Equipment[i].Name = "未知設備"
+		}
+		if result.Equipment[i].Type == "" {
+			result.Equipment[i].Type = "未知類型"
+		}
+		if result.Equipment[i].Size == "" {
+			result.Equipment[i].Size = "標準"
+		}
+		if result.Equipment[i].Material == "" {
+			result.Equipment[i].Material = "未知"
+		}
+		if result.Equipment[i].PowerSource == "" {
+			result.Equipment[i].PowerSource = "未知"
+		}
+	}
+
+	// 檢查並補充食譜步驟
+	for i := range result.Recipe {
+		// 確保 step_number 存在且正確
+		result.Recipe[i].StepNumber = i + 1
+
+		if result.Recipe[i].Title == "" {
+			result.Recipe[i].Title = fmt.Sprintf("步驟 %d", i+1)
+		}
+		if result.Recipe[i].Description == "" {
+			result.Recipe[i].Description = "無描述"
+		}
+		if result.Recipe[i].EstimatedTotalTime == "" {
+			result.Recipe[i].EstimatedTotalTime = "未知"
+		}
+		if result.Recipe[i].Temperature == "" || result.Recipe[i].Temperature == "null" {
+			result.Recipe[i].Temperature = "中火"
+		}
+		if result.Recipe[i].Warnings == "" || result.Recipe[i].Warnings == "null" {
+			result.Recipe[i].Warnings = "無"
+		}
+		if result.Recipe[i].Notes == "" || result.Recipe[i].Notes == "null" {
+			result.Recipe[i].Notes = "無備註"
+		}
+
+		// 檢查並補充動作資訊
+		for j := range result.Recipe[i].Actions {
+			if result.Recipe[i].Actions[j].Action == "" {
+				result.Recipe[i].Actions[j].Action = "無動作"
+			}
+			if result.Recipe[i].Actions[j].ToolRequired == "" || result.Recipe[i].Actions[j].ToolRequired == "null" {
+				result.Recipe[i].Actions[j].ToolRequired = "無"
+			}
+			if result.Recipe[i].Actions[j].InstructionDetail == "" {
+				result.Recipe[i].Actions[j].InstructionDetail = "無細節說明"
+			}
+			if result.Recipe[i].Actions[j].TimeMinutes <= 0 {
+				result.Recipe[i].Actions[j].TimeMinutes = 1
+			}
+			// 確保 material_required 不為 nil
+			if result.Recipe[i].Actions[j].MaterialRequired == nil {
+				result.Recipe[i].Actions[j].MaterialRequired = []string{}
+			}
+		}
+	}
+
+	// 驗證必要欄位
+	if len(result.Recipe) == 0 {
+		return nil, fmt.Errorf("recipe steps cannot be empty")
 	}
 
 	return &result, nil
