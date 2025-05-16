@@ -142,7 +142,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 	// 確保每個步驟都有 warnings 欄位
 	for i := range result.Recipe {
 		if result.Recipe[i].Warnings == "" {
-			result.Recipe[i].Warnings = "null"
+			result.Recipe[i].Warnings = ""
 		}
 	}
 
