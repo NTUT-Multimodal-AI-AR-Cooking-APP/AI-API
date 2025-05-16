@@ -58,7 +58,7 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
 9. 如果某些食材或設備不足，可以建議替代方案
 10. 每個食譜都要考慮到烹飪難度和時間
 11. time_minutes 欄位必須是整數，不能有小數點（以秒為單位）
-12. warnings 欄位必須是字串類型，如果沒有警告事項請填寫 "null"
+12. warnings 欄位必須是字串類型，如果沒有警告事項請填寫 null
 13. 每個步驟都必須包含 warnings 欄位，不能省略此欄位
 14. 不要使用\n，不需要換行
 
@@ -100,7 +100,7 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
             ],
             "estimated_total_time": "時間",
             "temperature": "火侯",
-            "warnings": "無",
+            "warnings": "警告事項",
             "notes": "備註"
         }
     ]
@@ -133,7 +133,6 @@ func (s *SuggestionService) SuggestRecipes(ctx context.Context, req *common.Reci
 
 	var result common.Recipe
 	if err := common.ParseJSON(content, &result); err != nil {
-		// 只 log 前 100 字與長度，不印全部內容
 		aiRespPreview := content
 		common.LogError("AI 回應解析失敗",
 			zap.Error(err),

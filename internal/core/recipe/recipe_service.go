@@ -98,7 +98,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 			],
 			"estimated_total_time": "時間",
 			"temperature": "火侯",
-			"warnings": null,
+			"warnings": "警告事項",
 			"notes": "備註"
 			}
 		]
@@ -142,7 +142,7 @@ func (s *RecipeService) GenerateRecipe(ctx context.Context, dishName string, ing
 	// 確保每個步驟都有 warnings 欄位
 	for i := range result.Recipe {
 		if result.Recipe[i].Warnings == "" {
-			result.Recipe[i].Warnings = "null"
+			result.Recipe[i].Warnings = ""
 		}
 	}
 
